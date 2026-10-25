@@ -4,7 +4,27 @@ Builds the portable Unseenet clients - **Portable Â· Terminal** and **Portable Â
 
 Builds run each night when something changed (the `dev` pre-release), by hand, and for releases. A bundle is versioned as the core it carries (`0.6.0`); a rebuild with newer clients is `0.6.0.post1`.
 
-> **Being set up** ([unseenet#549](https://github.com/unseenet/unseenet/issues/549), part of [unseenet#391](https://github.com/unseenet/unseenet/issues/391)). Until it is, this lives in [unseenet](https://github.com/unseenet/unseenet).
+> **Being set up** ([unseenet#549](https://github.com/unseenet/unseenet/issues/549), part of [unseenet#391](https://github.com/unseenet/unseenet/issues/391)). Until it is, the builds people download are still made in [unseenet](https://github.com/unseenet/unseenet/releases) and [unseenet-gui](https://github.com/unseenet/unseenet-gui/releases).
+
+## How it builds
+
+| | |
+|---|---|
+| [`versions.toml`](versions.toml) | the core and graphical client a release is made from; nightly builds take `main` of each |
+| [`.github/workflows/build.yml`](.github/workflows/build.yml) | Tor (signatures checked), the terminal and the graphical build for Linux, Windows and two Macs, each unpacked and self-tested, the USB zips, the checksums; then the `dev` pre-release or the release |
+
+For now each part is built by the build tool in its own repository, checked
+out at the version to build; next, those tools move here (#549).
+
+| When | What |
+|---|---|
+| each night | only if the core's or the graphical client's `main` (or this repository) changed since the `dev` build; replaces `dev`, signed with the CI release key |
+| by hand | *Run workflow*: `publish` = `dev` or `artifact`, `force` to build anyway |
+| a `v*` tag | the release, from the versions in `versions.toml` |
+| a pull request | the builds as artifacts |
+
+Publishing `dev` needs the repository secrets `UNSEENET_RELEASE_KEY` and
+`UNSEENET_ANNOUNCE_SEED`; without them the builds are kept as artifacts.
 
 ## Part of Unseenet
 

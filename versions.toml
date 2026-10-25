@@ -1,0 +1,12 @@
+# What the portable builds are made of (unseenet#549).
+#
+# Nightly builds and builds by hand take main of each repository; a release
+# (a v* tag here) takes the tags named here. When a part is released, bump it
+# here in a pull request; merge, then tag. A bundle is versioned as the core
+# it carries (0.6.0); a rebuild with newer clients is 0.6.0.post1.
+#
+# For now the terminal client still comes with the core (unseenet[tui]); when
+# it is released from unseenet-tui (unseenet#548) it gets its own line here.
+[release]
+core = "v0.5.0"     # unseenet/unseenet: the core, the terminal client, the Tor handling
+gui = "v0.2.0"      # unseenet/unseenet-gui: the graphical client
