@@ -1,6 +1,6 @@
 name: build
 # The portable Unseenet clients with Tor inside (unseenet#549):
-#   Portable · Terminal   unseenet-<core version>-<platform>.zip, -usb.zip
+#   Portable · Terminal   unseenet-<core version>-<platform>.zip, -usb.zip (core + unseenet-tui)
 #   Portable · Graphical  unseenet-gui-<gui version>-<platform>.zip, -usb.zip
 # for Linux, Windows (x86_64) and macOS (Apple silicon and Intel), each
 # unpacked and self-tested as a user would.
@@ -47,7 +47,7 @@ jobs:
   gate:
     uses: unseenet/.github/.github/workflows/nightly-gate.yml@main
     with:
-      sources: unseenet/unseenet unseenet/unseenet-gui
+      sources: unseenet/unseenet unseenet/unseenet-tui unseenet/unseenet-gui
       force: ${{ inputs.force || false }}
 
   refs:
@@ -58,6 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       core: ${{ steps.r.outputs.core }}
+      tui: ${{ steps.r.outputs.tui }}
       gui: ${{ steps.r.outputs.gui }}
       go: ${{ steps.r.outputs.go }}
     env:
@@ -77,9 +78,9 @@ jobs:
             echo "go=true" >> "$GITHUB_OUTPUT"
           fi
           if [ "${GITHUB_REF#refs/tags/v}" != "$GITHUB_REF" ]; then
-            python3 -c "import tomllib; r = tomllib.load(open('versions.toml','rb'))['release']; print(f\"core={r['core']}\"); print(f\"gui={r['gui']}\")" >> "$GITHUB_OUTPUT"
+            python3 -c "import tomllib; r = tomllib.load(open('versions.toml','rb'))['release']; print(f\"core={r['core']}\"); print(f\"tui={r['tui']}\"); print(f\"gui={r['gui']}\")" >> "$GITHUB_OUTPUT"
           else
-            python3 -c "import json, os; s = json.loads(os.environ['SHAS']); print('core=' + s['unseenet/unseenet']); print('gui=' + s['unseenet/unseenet-gui'])" >> "$GITHUB_OUTPUT"
+            python3 -c "import json, os; s = json.loads(os.environ['SHAS']); print('core=' + s['unseenet/unseenet']); print('tui=' + s['unseenet/unseenet-tui']); print('gui=' + s['unseenet/unseenet-gui'])" >> "$GITHUB_OUTPUT"
           fi
           cat "$GITHUB_OUTPUT"
 
@@ -140,7 +141,12 @@ jobs:
         run: |
           brew install gmp cmake
           BUILD_VDF_CLIENT=N pip install --no-binary chiavdf "chiavdf>=1.1"
-      - run: pip install "./core[tui]" pyinstaller pillow
+      - uses: actions/checkout@v4
+        with:
+          repository: unseenet/unseenet-tui
+          ref: ${{ needs.refs.outputs.tui }}
+          path: tui
+      - run: pip install ./core ./tui pyinstaller pillow
       - uses: actions/download-artifact@v4
         with:
           name: tor-bundles
