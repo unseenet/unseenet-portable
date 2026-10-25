@@ -1,0 +1,408 @@
+name: build
+# The portable Unseenet clients with Tor inside (unseenet#549):
+#   Portable · Terminal   unseenet-<core version>-<platform>.zip, -usb.zip
+#   Portable · Graphical  unseenet-gui-<gui version>-<platform>.zip, -usb.zip
+# for Linux, Windows (x86_64) and macOS (Apple silicon and Intel), each
+# unpacked and self-tested as a user would.
+#
+# For now each part is built by the build tool in its own repository (the
+# core's and unseenet-gui's tools/build_portable.py), checked out at the
+# version to build; the tools move here next.
+#
+# When (unseenet#544): each night, only when the core's or the graphical
+# client's main (or this repository) changed since the last "dev" build; by
+# hand (publish: dev or artifact; force); on v* tags (the parts named in
+# versions.toml); on pull requests (artifacts only).
+#
+# Publishing the "dev" pre-release needs the secrets UNSEENET_RELEASE_KEY (signs
+# the checksums; sticks on the development channel check it) and
+# UNSEENET_ANNOUNCE_SEED (tells clients through unseenet.releases). Without them
+# the builds are made and kept as artifacts only.
+on:
+  push:
+    tags: ["v*"]
+  schedule:
+    - cron: "17 3 * * *"
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "dev = replace the dev pre-release (main only); artifact = workflow artifacts only"
+        type: choice
+        options: [dev, artifact]
+        default: dev
+      force:
+        description: "Build even if nothing changed since the current dev build"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref == 'refs/heads/main' }}
+
+jobs:
+  gate:
+    uses: unseenet/.github/.github/workflows/nightly-gate.yml@main
+    with:
+      sources: unseenet/unseenet unseenet/unseenet-gui
+      force: ${{ inputs.force || false }}
+
+  refs:
+    # Which commit of each part to build: the tags in versions.toml for a
+    # release, else the main commits the gate looked at (the same in every job).
+    needs: gate
+    if: needs.gate.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      core: ${{ steps.r.outputs.core }}
+      gui: ${{ steps.r.outputs.gui }}
+      go: ${{ steps.r.outputs.go }}
+    env:
+      HAS_KEYS: ${{ secrets.UNSEENET_RELEASE_KEY != '' && secrets.UNSEENET_ANNOUNCE_SEED != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: r
+        env:
+          SHAS: ${{ needs.gate.outputs.shas }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          # a nightly build that could not be published is not made
+          if [ "$EVENT" = schedule ] && [ "$HAS_KEYS" != true ]; then
+            echo "::notice::No release key here yet: the nightly build is skipped."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+          if [ "${GITHUB_REF#refs/tags/v}" != "$GITHUB_REF" ]; then
+            python3 -c "import tomllib; r = tomllib.load(open('versions.toml','rb'))['release']; print(f\"core={r['core']}\"); print(f\"gui={r['gui']}\")" >> "$GITHUB_OUTPUT"
+          else
+            python3 -c "import json, os; s = json.loads(os.environ['SHAS']); print('core=' + s['unseenet/unseenet']); print('gui=' + s['unseenet/unseenet-gui'])" >> "$GITHUB_OUTPUT"
+          fi
+          cat "$GITHUB_OUTPUT"
+
+  tor:
+    # The Tor Expert Bundles, their OpenPGP signatures checked here (where gpg
+    # is) by the core's tool; the builds get them with a SHA-256 to check.
+    needs: refs
+    if: needs.refs.outputs.go == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: unseenet/unseenet
+          ref: ${{ needs.refs.outputs.core }}
+          path: core
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - working-directory: core
+        run: >
+          python tools/build_portable.py --out ../tor
+          --fetch-tor linux-x86_64 windows-x86_64 macos-aarch64 macos-x86_64
+      - run: cp core/tools/tor-version.txt tor/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tor-bundles
+          path: tor/
+
+  terminal:
+    needs: [refs, tor]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {platform: linux-x86_64, runner: ubuntu-22.04}     # older glibc: runs on more distros
+          - {platform: windows-x86_64, runner: windows-latest}
+          - {platform: macos-aarch64, runner: macos-latest}
+          - {platform: macos-x86_64, runner: macos-15-intel}
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: unseenet/unseenet
+          ref: ${{ needs.refs.outputs.core }}
+          path: core
+          fetch-depth: 0                   # tags, for the development version
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Development version (not on release tags)
+        if: "!startsWith(github.ref, 'refs/tags/v')"
+        shell: bash
+        working-directory: core
+        run: python tools/dev_version.py --write
+      - name: Key ripening on Intel Macs (chiavdf has no wheel there)
+        if: matrix.platform == 'macos-x86_64'
+        shell: bash
+        run: |
+          brew install gmp cmake
+          BUILD_VDF_CLIENT=N pip install --no-binary chiavdf "chiavdf>=1.1"
+      - run: pip install "./core[tui]" pyinstaller pillow
+      - uses: actions/download-artifact@v4
+        with:
+          name: tor-bundles
+          path: tor
+      - name: Build
+        shell: bash
+        working-directory: core
+        run: >
+          python tools/build_portable.py --platform ${{ matrix.platform }} --out ../dist
+          --tor-archive ../tor/tor-expert-bundle-${{ matrix.platform }}-$(cat ../tor/tor-version.txt).tar.gz
+      - name: Unpack as a user would
+        shell: bash
+        run: |
+          mkdir try && cd try && python -c "import sys; sys.path.insert(0, '../core/tools'); import build_portable as b; from pathlib import Path; b.extract_zip(next(Path('../dist').glob('*.zip')), Path('.'))"
+      - name: Self-test, offline (programs start, Tor runs)
+        shell: bash
+        working-directory: try/Unseenet
+        run: ./${{ matrix.platform }}/unseenet --self-test --offline
+      - name: Self-test over the Tor network
+        continue-on-error: true            # the runner's network may not reach Tor
+        timeout-minutes: 5
+        shell: bash
+        working-directory: try/Unseenet
+        run: >
+          ./${{ matrix.platform }}/unseenet --self-test
+          --node f6vnchi5p7ll4yn6yot6cz4ohzuxy3uhc3kztafuwn3zlyoup6tn64qd.onion
+      - uses: actions/upload-artifact@v4
+        with:
+          name: terminal-${{ matrix.platform }}
+          path: dist/*.zip
+          compression-level: 0
+
+  graphical:
+    needs: [refs, tor]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {platform: linux-x86_64, runner: ubuntu-22.04}
+          - {platform: windows-x86_64, runner: windows-latest}
+          - {platform: macos-aarch64, runner: macos-latest}
+          - {platform: macos-x86_64, runner: macos-15-intel}
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: unseenet/unseenet-gui
+          ref: ${{ needs.refs.outputs.gui }}
+          path: gui
+      - uses: actions/checkout@v4
+        with:
+          repository: unseenet/unseenet
+          ref: ${{ needs.refs.outputs.core }}
+          path: core
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Development version (not on release tags)
+        if: "!startsWith(github.ref, 'refs/tags/v')"
+        shell: bash
+        run: sed -i.bak "s/^__version__ = \"\(.*\)\.dev0\"/__version__ = \"\1.dev${{ github.run_number }}\"/" gui/src/unseenet_gui/__init__.py
+      - name: Key ripening on Intel Macs (chiavdf has no wheel there)
+        if: matrix.platform == 'macos-x86_64'
+        shell: bash
+        run: |
+          brew install gmp cmake
+          BUILD_VDF_CLIENT=N pip install --no-binary chiavdf "chiavdf>=1.1"
+      - name: Install
+        shell: bash
+        run: |
+          pip install ./core aiohttp pyinstaller pillow
+          case "${{ matrix.platform }}" in linux-*) ;; *) pip install pywebview ;; esac
+          pip install --no-deps ./gui
+      - uses: actions/download-artifact@v4
+        with:
+          name: tor-bundles
+          path: tor
+      - name: Build
+        shell: bash
+        working-directory: gui
+        run: >
+          python tools/build_portable.py --core ../core --platform ${{ matrix.platform }} --out ../dist
+          --tor-archive ../tor/tor-expert-bundle-${{ matrix.platform }}-$(cat ../tor/tor-version.txt).tar.gz
+      - name: Unpack as a user would
+        shell: bash
+        run: |
+          mkdir try && cd try && python -c "import sys; sys.path.insert(0, '../core/tools'); import build_portable as b; from pathlib import Path; b.extract_zip(next(Path('../dist').glob('*.zip')), Path('.'))"
+      - name: Self-test, offline (the program, its server and Tor start)
+        shell: bash
+        working-directory: try/Unseenet
+        run: |
+          case "${{ matrix.platform }}" in
+            windows-*) EXE="./Unseenet Graphical.exe" ;;
+            *) EXE="./gui-${{ matrix.platform }}/unseenet-gui" ;;
+          esac
+          rc=0; "$EXE" --self-test --offline --log selftest.txt || rc=$?
+          cat selftest.txt; exit $rc
+      - name: Self-test over the Tor network
+        continue-on-error: true
+        timeout-minutes: 5
+        shell: bash
+        working-directory: try/Unseenet
+        run: |
+          case "${{ matrix.platform }}" in
+            windows-*) EXE="./Unseenet Graphical.exe" ;;
+            *) EXE="./gui-${{ matrix.platform }}/unseenet-gui" ;;
+          esac
+          rc=0; "$EXE" --self-test --log selftest.txt \
+            --node f6vnchi5p7ll4yn6yot6cz4ohzuxy3uhc3kztafuwn3zlyoup6tn64qd.onion || rc=$?
+          cat selftest.txt; exit $rc
+      - name: No console window on Windows
+        if: startsWith(matrix.platform, 'windows')
+        shell: pwsh
+        working-directory: try/Unseenet
+        run: |
+          # PE subsystem 2 = Windows GUI (3 would be a console program)
+          $b = [IO.File]::ReadAllBytes("Unseenet Graphical.exe"); $pe = [BitConverter]::ToInt32($b, 0x3C)
+          $sub = [BitConverter]::ToUInt16($b, $pe + 0x5C); "subsystem $sub"; if ($sub -ne 2) { exit 1 }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: graphical-${{ matrix.platform }}
+          path: dist/*.zip
+          compression-level: 0
+
+  usb:
+    # One all-in-one zip of each kind, and the checksums: SHA256SUMS.txt for the
+    # terminal builds (signed for dev; what sticks check), SHA256SUMS-graphical.txt.
+    needs: [refs, terminal, graphical]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: unseenet/unseenet
+          ref: ${{ needs.refs.outputs.core }}
+          path: core
+          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          repository: unseenet/unseenet-gui
+          ref: ${{ needs.refs.outputs.gui }}
+          path: gui
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Development versions (not on release tags)
+        if: "!startsWith(github.ref, 'refs/tags/v')"
+        run: |
+          (cd core && python tools/dev_version.py --write)
+          sed -i "s/^__version__ = \"\(.*\)\.dev0\"/__version__ = \"\1.dev${{ github.run_number }}\"/" gui/src/unseenet_gui/__init__.py
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: terminal-*
+          path: terminal
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: graphical-*
+          path: graphical
+          merge-multiple: true
+      - name: Combine and checksum
+        run: |
+          (cd core && python tools/build_portable.py --combine ../terminal/*.zip --out ../terminal \
+                   && python tools/build_portable.py --checksums ../terminal/*.zip --out ../terminal)
+          (cd gui && python tools/build_portable.py --core ../core --combine ../graphical/*.zip --out ../graphical)
+          mkdir files && mv terminal/* graphical/*.zip files/
+          (cd files && sha256sum unseenet-gui-*.zip > SHA256SUMS-graphical.txt && cat SHA256SUMS.txt SHA256SUMS-graphical.txt)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portable
+          path: files/
+          compression-level: 0
+
+  dev:
+    # The newest nightly build as the pre-release "dev", replaced each time.
+    needs: [gate, refs, usb]
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'schedule' ||
+       (github.event_name == 'workflow_dispatch' && inputs.publish == 'dev'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      HAS_KEYS: ${{ secrets.UNSEENET_RELEASE_KEY != '' && secrets.UNSEENET_ANNOUNCE_SEED != '' }}
+    steps:
+      - name: The release key is needed to publish
+        if: env.HAS_KEYS != 'true'
+        run: echo "::warning::UNSEENET_RELEASE_KEY or UNSEENET_ANNOUNCE_SEED is not set here, so the builds stay artifacts and dev is not replaced."
+      - if: env.HAS_KEYS == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: unseenet/unseenet
+          ref: ${{ needs.refs.outputs.core }}
+          path: core
+          fetch-depth: 0
+      - if: env.HAS_KEYS == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: portable
+          path: files
+      - if: env.HAS_KEYS == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - if: env.HAS_KEYS == 'true'
+        run: pip install -q ./core
+      - name: Sign the checksums with the release key
+        if: env.HAS_KEYS == 'true'
+        env:
+          UNSEENET_RELEASE_KEY: ${{ secrets.UNSEENET_RELEASE_KEY }}
+        run: python core/tools/sign_sums.py files/SHA256SUMS.txt
+      - name: Release notes
+        if: env.HAS_KEYS == 'true'
+        env:
+          BUILT_FROM: ${{ needs.gate.outputs.built-from }}
+        run: |
+          VERSION=$(cd core && python tools/dev_version.py)
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          {
+            echo "**Development build $VERSION** - the newest code on \`main\` of the core and the clients, built and self-tested each night when something changed. Not a release: it may have bugs that a release would not."
+            echo
+            echo "Terminal: \`unseenet-$VERSION-*.zip\`. Graphical: \`unseenet-gui-*.zip\`."
+            echo
+            echo "$BUILT_FROM"
+          } > notes.md
+      - name: Replace the dev pre-release
+        if: env.HAS_KEYS == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete dev --yes --cleanup-tag -R "$GITHUB_REPOSITORY" 2>/dev/null || true
+          gh release create dev files/* --prerelease --latest=false -R "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" --title "Development build $VERSION" --notes-file notes.md
+      - name: Tell clients through the network (unseenet.releases)
+        if: env.HAS_KEYS == 'true'
+        env:
+          UNSEENET_ANNOUNCE_SEED: ${{ secrets.UNSEENET_ANNOUNCE_SEED }}
+          UNSEENET_STATE_DIR: core/tools/ripening   # the key's public ripening chain (UN-RFC 0025)
+        run: |
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update -qq
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 install -y -qq tor
+          sudo systemctl stop tor || true
+          python core/tools/announce.py client-release dev files/SHA256SUMS.txt files/SHA256SUMS.txt.sig
+
+  release:
+    # A v* tag: the release here, with every build and the checksums. Stable
+    # releases are signed by the maintainer with the project key afterwards.
+    needs: [usb]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: portable
+          path: files
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v v="$VERSION" '$0 ~ "^## \\[" v "\\]" {on=1; next} /^## \[/ {on=0} on' CHANGELOG.md > notes.md
+          [ -s notes.md ] || echo "Portable builds of Unseenet $VERSION. See https://unseenet.org/portable/" > notes.md
+          gh release create "$GITHUB_REF_NAME" files/* --title "Unseenet $GITHUB_REF_NAME, portable" --notes-file notes.md
