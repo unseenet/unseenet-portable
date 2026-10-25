@@ -357,7 +357,7 @@ jobs:
         if: env.HAS_KEYS == 'true'
         env:
           UNSEENET_RELEASE_KEY: ${{ secrets.UNSEENET_RELEASE_KEY }}
-        run: python core/tools/sign_sums.py files/SHA256SUMS.txt
+        run: python core/tools/sign_sums.py --no-update-zip files/SHA256SUMS.txt   # the update zip is in unseenet-bootable
       - name: Release notes
         if: env.HAS_KEYS == 'true'
         env:
