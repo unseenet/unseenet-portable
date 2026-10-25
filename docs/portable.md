@@ -5,7 +5,7 @@ client **and Tor** inside, nothing to install. Unzip it, start it, done. Put
 the folder on a USB stick and you carry your Unseenet with you - your keys,
 groups and contacts are in the encrypted vault inside it.
 
-This page is about the terminal client. The [graphical client](graphical.md) has
+This page is about the terminal client. The [graphical client](https://unseenet.org/graphical/) has
 portable and bootable builds of its own, which can share the stick and the
 vault with these.
 
@@ -113,7 +113,7 @@ because Tor keeps what it learned about the network in `data/`.
 ## Your data
 
 Everything is in `data/`, encrypted with your passphrase (Argon2id and
-XSalsa20-Poly1305, [UN-RFC 0007](spec/un-rfc-0007.md)):
+XSalsa20-Poly1305, [UN-RFC 0007](https://unseenet.org/spec/un-rfc-0007/)):
 
 - `unseenet.vault` - your keys, groups, contacts, settings
 - `unseenet.vault.cache`, `.sent` - saved posts and your sent private
@@ -122,7 +122,7 @@ XSalsa20-Poly1305, [UN-RFC 0007](spec/un-rfc-0007.md)):
 - `unseenet.vault.lock` - there while a program has the vault open
 
 **One program at a time.** The terminal client, the
-[graphical client](graphical.md) and the command line can all use the
+[graphical client](https://unseenet.org/graphical/) and the command line can all use the
 vault, but not at once: each keeps the whole vault in memory and saves it
 whole, so the last to save would undo the other's changes. The second one
 says *"This vault is already open in another Unseenet program"*. If a
