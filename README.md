@@ -1,43 +1,121 @@
-# unseenet-portable
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/unseenet/unseenet/main/assets/logo-dark.svg">
+    <img src="https://raw.githubusercontent.com/unseenet/unseenet/main/assets/logo-light.svg" alt="Unseenet" width="360">
+  </picture>
+</p>
 
-Builds the portable Unseenet clients - **Portable · Terminal** and **Portable · Graphical** - for Linux, Windows and macOS, and the all-in-one USB zip, with Tor inside. No client code: `versions.toml` names the core, terminal and graphical client to build, and the workflows build, self-test and sign them.
+<h1 align="center">unseenet-portable</h1>
 
-Builds run each night when something changed (the `dev` pre-release), by hand, and for releases. A bundle is versioned as the core it carries (`0.6.0`); a rebuild with newer clients is `0.6.0.post1`.
+<p align="center"><b>Unseenet on a USB stick - for Windows, macOS and Linux.</b><br>
+One folder with the client and Tor inside. Nothing to install: unzip it, start it, take it with you.</p>
 
-> **Being set up** ([unseenet#549](https://github.com/unseenet/unseenet/issues/549), part of [unseenet#391](https://github.com/unseenet/unseenet/issues/391)). Until it is, the builds people download are still made in [unseenet](https://github.com/unseenet/unseenet/releases) and [unseenet-gui](https://github.com/unseenet/unseenet-gui/releases).
+<p align="center">
+  <a href="https://github.com/unseenet/unseenet-portable/releases"><img src="https://img.shields.io/github/v/release/unseenet/unseenet-portable?include_prereleases&label=release" alt="Release"></a>
+  <a href="https://github.com/unseenet/unseenet-portable/actions/workflows/build.yml"><img src="https://github.com/unseenet/unseenet-portable/actions/workflows/build.yml/badge.svg" alt="build"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="Apache-2.0"></a>
+</p>
 
-## How it builds
+> **Pre-alpha.** Nothing is stable yet, and Unseenet has not had a security
+> review. Do not rely on it to protect anyone yet.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/unseenet/unseenet-tui/main/docs/img/demo.gif" alt="Portable · Terminal: the terminal client" width="430">
+  <img src="https://raw.githubusercontent.com/unseenet/unseenet-gui/main/docs/img/demo.gif" alt="Portable · Graphical: the graphical client" width="430">
+</p>
+<p align="center"><sub><b>Portable · Terminal</b> and <b>Portable · Graphical</b> - two clients, one vault</sub></p>
+
+## What it is
+
+The portable builds are the easiest way to use [Unseenet](https://unseenet.org),
+a discussion network in the spirit of the old Usenet over Tor onion services.
+Each is one folder: the client, **Tor**, and your encrypted vault in `data/`
+beside them. Put the folder on a USB stick and you carry your Unseenet with
+you - your keys, groups and contacts - and leave nothing behind on the
+computer you used.
+
+There are two clients, and they share the stick and the vault:
 
 | | |
 |---|---|
-| [`versions.toml`](versions.toml) | the core and graphical client a release is made from; nightly builds take `main` of each |
-| [`.github/workflows/build.yml`](.github/workflows/build.yml) | Tor (signatures checked), the terminal and the graphical build for Linux, Windows and two Macs, each unpacked and self-tested, the USB zips, the checksums; then the `dev` pre-release or the release |
+| **Portable · Terminal** | [the terminal client](https://github.com/unseenet/unseenet-tui): a newsreader in a terminal window |
+| **Portable · Graphical** | [the graphical client](https://github.com/unseenet/unseenet-gui): the same, in a window of its own |
 
-For now each part is built by the build tool in its own repository, checked
-out at the version to build; next, those tools move here (#549).
+## Get it
+
+From the [releases](https://github.com/unseenet/unseenet-portable/releases) (or the
+newest [development build](https://github.com/unseenet/unseenet-portable/releases/tag/dev)):
+
+| File | For |
+|------|-----|
+| `unseenet-<version>-usb.zip` | **The terminal client for every system** in one folder - for a stick that works on any computer |
+| `unseenet-<version>-windows-x86_64.zip`, `-macos-aarch64.zip`, `-macos-x86_64.zip`, `-linux-x86_64.zip` | The terminal client for one system |
+| `unseenet-gui-<version>-usb.zip` and per system | The graphical client, the same way |
+
+Check a download against `SHA256SUMS.txt` from the same release
+(`sha256sum`, `shasum -a 256` or `certutil -hashfile … SHA256`).
+
+Unzip, copy the `Unseenet` folder to a stick (FAT32 or exFAT works on all
+three systems), and start it:
+
+| | Terminal | Graphical |
+|---|---|---|
+| **Windows** | `Start Unseenet.bat` | `Unseenet Graphical.exe` |
+| **macOS** | `Start Unseenet.command` | `Start Unseenet Graphical.command` |
+| **Linux** | `sh start-linux.sh` | `sh start-graphical-linux.sh` |
+
+The programs are not signed: Windows asks *More info → Run anyway* the first
+time, macOS wants a right-click → *Open*. The first start asks for a
+passphrase for your vault, a display name and a node.
+
+**The full guide:** [Portable](https://unseenet.org/portable/) - checking
+downloads, the stick, your data, updating.
+
+## How it works
+
+This repository holds no client code. [`versions.toml`](versions.toml) names
+the core, the terminal client and the graphical client a release is made
+from, and [`.github/workflows/build.yml`](.github/workflows/build.yml) builds
+them: Tor (its signatures checked), the terminal and the graphical build for
+Linux, Windows and two kinds of Mac, each unpacked and self-tested as a user
+would, the USB zips and the checksums - all in the open, on GitHub's runners.
 
 | When | What |
 |---|---|
-| each night | only if the core's or the graphical client's `main` (or this repository) changed since the `dev` build; replaces `dev`, signed with the CI release key |
+| each night | only if `main` of the core or a client (or this repository) changed since the `dev` build; replaces `dev`, signed with the build repositories' release key and announced in `unseenet.releases`, where sticks learn of it |
 | by hand | *Run workflow*: `publish` = `dev` or `artifact`, `force` to build anyway |
-| a `v*` tag | the release, from the versions in `versions.toml` |
+| a `v*` tag | the release, from the versions in `versions.toml`, signed afterwards by the maintainer with the project key |
 | a pull request | the builds as artifacts |
 
-Publishing `dev` needs the repository secrets `UNSEENET_RELEASE_KEY` and
-`UNSEENET_ANNOUNCE_SEED`; without them the builds are kept as artifacts.
+The images for booting a stick are made from these zips in
+[unseenet-bootable](https://github.com/unseenet/unseenet-bootable).
+
+## Develop
+
+For now each part is built by the build tool of its own repository, checked
+out at the version to build (`tools/build_portable.py` in unseenet and in
+unseenet-gui); next, those tools move here (unseenet#549). To try a branch,
+run the workflow by hand with `publish: artifact`.
+
+## Versions and releases
+
+A bundle is versioned as the core it carries (`0.6.0`); a rebuild with newer
+clients is `0.6.0.post1`. When a part is released, bump it in
+`versions.toml` in a pull request, merge, then tag `vX.Y.Z` here; the
+workflow makes the release, and the maintainer signs its `SHA256SUMS.txt`
+with the project key (`tools/project/sign_release.py` in unseenet). Notes
+are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Part of Unseenet
-
-Unseenet is made in several repositories, each released on its own:
 
 | Repository | What it is |
 |---|---|
 | [unseenet](https://github.com/unseenet/unseenet) | The protocol (UN-RFCs), the core library, the node and the command-line client |
-| [unseenet-tui](https://github.com/unseenet/unseenet-tui) | The terminal client (moving here from unseenet, unseenet#548) |
+| [unseenet-tui](https://github.com/unseenet/unseenet-tui) | The terminal client |
 | [unseenet-gui](https://github.com/unseenet/unseenet-gui) | The graphical client - in a window, booted, or in a browser |
-| [unseenet-portable](https://github.com/unseenet/unseenet-portable) | Builds the portable clients, Terminal and Graphical, with Tor inside (unseenet#549) |
-| [unseenet-bootable](https://github.com/unseenet/unseenet-bootable) | Builds the bootable images, Terminal and Graphical, and later a node image (unseenet#550) |
-| [unseenet-docs](https://github.com/unseenet/unseenet-docs) | The site [unseenet.org](https://unseenet.org), gathering the docs of every repository (unseenet#547) |
+| [unseenet-portable](https://github.com/unseenet/unseenet-portable) | Builds the portable clients, Terminal and Graphical, with Tor inside |
+| [unseenet-bootable](https://github.com/unseenet/unseenet-bootable) | Builds the bootable images, Terminal and Graphical |
+| [unseenet-docs](https://github.com/unseenet/unseenet-docs) | The site [unseenet.org](https://unseenet.org) |
 | [unseenet-entrance](https://github.com/unseenet/unseenet-entrance) | Web entrances: the graphical client in an ordinary browser |
 | [unseenet-gateway](https://github.com/unseenet/unseenet-gateway) | Gateways to other networks: Usenet, Nostr, Matrix |
 | [unseenet-bots](https://github.com/unseenet/unseenet-bots) | Bots that keep channels filled with current content |
@@ -48,4 +126,4 @@ Unseenet is made in several repositories, each released on its own:
 
 ## License
 
-[Apache License 2.0](LICENSE).
+[Apache License 2.0](LICENSE). The Unseenet logo: CC BY 4.0.
