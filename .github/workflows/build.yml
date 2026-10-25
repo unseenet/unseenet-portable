@@ -59,12 +59,23 @@ jobs:
     outputs:
       core: ${{ steps.r.outputs.core }}
       gui: ${{ steps.r.outputs.gui }}
+      go: ${{ steps.r.outputs.go }}
+    env:
+      HAS_KEYS: ${{ secrets.UNSEENET_RELEASE_KEY != '' && secrets.UNSEENET_ANNOUNCE_SEED != '' }}
     steps:
       - uses: actions/checkout@v4
       - id: r
         env:
           SHAS: ${{ needs.gate.outputs.shas }}
+          EVENT: ${{ github.event_name }}
         run: |
+          # a nightly build that could not be published is not made
+          if [ "$EVENT" = schedule ] && [ "$HAS_KEYS" != true ]; then
+            echo "::notice::No release key here yet: the nightly build is skipped."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
           if [ "${GITHUB_REF#refs/tags/v}" != "$GITHUB_REF" ]; then
             python3 -c "import tomllib; r = tomllib.load(open('versions.toml','rb'))['release']; print(f\"core={r['core']}\"); print(f\"gui={r['gui']}\")" >> "$GITHUB_OUTPUT"
           else
@@ -76,6 +87,7 @@ jobs:
     # The Tor Expert Bundles, their OpenPGP signatures checked here (where gpg
     # is) by the core's tool; the builds get them with a SHA-256 to check.
     needs: refs
+    if: needs.refs.outputs.go == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
