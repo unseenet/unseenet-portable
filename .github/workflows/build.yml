@@ -277,7 +277,7 @@ jobs:
 
   usb:
     # One all-in-one zip of each kind, and the checksums: SHA256SUMS.txt for the
-    # terminal builds (signed for dev; what sticks check), SHA256SUMS-graphical.txt.
+    # terminal and graphical builds, signed for dev (what sticks check; #3).
     needs: [refs, terminal, graphical]
     runs-on: ubuntu-latest
     steps:
@@ -319,7 +319,10 @@ jobs:
             && python portable/tools/build_portable.py --core core --checksums terminal/*.zip --out terminal
           python portable/tools/build_graphical.py --gui gui --core core --combine graphical/*.zip --out graphical
           mkdir files && mv terminal/* graphical/*.zip files/
-          (cd files && sha256sum unseenet-gui-*.zip > SHA256SUMS-graphical.txt && cat SHA256SUMS.txt SHA256SUMS-graphical.txt)
+          # the graphical zips in the same checksums, so they are signed and announced with
+          # the terminal ones (#3); a terminal stick's updater picks its own zip by name
+          # (update.ASSET needs the version right after "unseenet-"), so it never takes these
+          (cd files && sha256sum unseenet-gui-*.zip >> SHA256SUMS.txt && cat SHA256SUMS.txt)
       - uses: actions/upload-artifact@v4
         with:
           name: portable
