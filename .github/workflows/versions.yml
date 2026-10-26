@@ -1,0 +1,45 @@
+name: versions
+# When the core, unseenet-tui or unseenet-gui make a release, propose it here:
+# once a day, compare their newest release with versions.toml and open (or
+# update) a pull request "Bump versions.toml". Merge it, then tag this
+# repository to release the bundle (versioned as the core it carries,
+# unseenet-portable#6). Nothing is built or released by this workflow.
+#
+# A pull request opened with this workflow's token does not start other
+# workflows: close and reopen it (or push to it) to run the build on it.
+on:
+  schedule:
+    - cron: "41 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - id: bump
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python tools/bump_versions.py --write >> "$GITHUB_OUTPUT"
+      - if: steps.bump.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SUMMARY: ${{ steps.bump.outputs.summary }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git switch -C bump-versions
+          git commit -qam "Bump versions.toml: $SUMMARY"
+          git push -qf origin bump-versions
+          if ! gh pr list --head bump-versions --state open --json number -q '.[0].number' | grep -q .; then
+            gh pr create --head bump-versions --title "Bump versions.toml: $SUMMARY" --body "New releases of the parts of the portable builds: $SUMMARY.
+
+          Merge, then tag this repository (\`v<core version>\`, or \`v<core version>.postN\` for newer clients on the same core) to release the bundle."
+          fi

@@ -1,0 +1,55 @@
+name: tor-update
+# Tor gets security releases, and the portable builds carry Tor inside: a fix
+# should reach the sticks soon. Every day, check for a newer stable Tor Expert
+# Bundle; if there is one, open a pull request that pins it in
+# tools/tor-version.txt. Its build is the test (every platform built and
+# self-tested with the new Tor); merging it releases a rebuild of the bundle,
+# vX.Y.Z.postN (post-release.yml).
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - id: check
+        run: |
+          set +e
+          OUT=$(python tools/build_portable.py --check-tor); STATUS=$?
+          echo "$OUT"
+          echo "newer=$([ $STATUS -ne 0 ] && echo yes || echo no)" >> "$GITHUB_OUTPUT"
+          echo "latest=$(echo "$OUT" | sed 's/.*latest //')" >> "$GITHUB_OUTPUT"
+          echo "pinned=$(cat tools/tor-version.txt)" >> "$GITHUB_OUTPUT"
+      - if: steps.check.outputs.newer == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LATEST: ${{ steps.check.outputs.latest }}
+          PINNED: ${{ steps.check.outputs.pinned }}
+        run: |
+          BRANCH="tor-$LATEST"
+          if git ls-remote --exit-code origin "refs/heads/$BRANCH" >/dev/null; then
+            echo "a pull request for Tor $LATEST exists"; exit 0
+          fi
+          echo "$LATEST" > tools/tor-version.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git commit -qam "Tor $LATEST (was $PINNED)"
+          git push -q origin "$BRANCH"
+          gh pr create --head "$BRANCH" --title "Tor $LATEST" --body "A newer stable Tor Expert Bundle is out: $LATEST (pinned: $PINNED).
+
+          Tor's security fixes should reach the sticks soon. This pull request pins it; merging it releases a rebuild of the bundle (\`vX.Y.Z.postN\`, the same Unseenet with the new Tor) through *post-release*.
+
+          A pull request opened by this workflow does not start the build by itself: close and reopen it (or push to it) to build and self-test every platform with the new Tor before merging.
+
+          Tor's release notes: https://blog.torproject.org/"
