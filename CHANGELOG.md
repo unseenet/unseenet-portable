@@ -13,5 +13,3 @@ All notable changes to unseenet-portable are listed here. The format follows
   The weekly `tor-update` check moves here too.
 - **`versions` job**: a pull request bumping `versions.toml` when a part makes
   a release (`tools/bump_versions.py`).
-- A release also attaches its files to the core's release of the same tag
-  while old sticks look there, when `UNSEENET_CORE_RELEASE_TOKEN` is set.

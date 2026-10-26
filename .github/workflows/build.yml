@@ -419,18 +419,3 @@ jobs:
           awk -v v="$VERSION" '$0 ~ "^## \\[" v "\\]" {on=1; next} /^## \[/ {on=0} on' CHANGELOG.md > notes.md
           [ -s notes.md ] || echo "Portable builds of Unseenet $VERSION. See https://unseenet.org/portable/" > notes.md
           gh release create "$GITHUB_REF_NAME" files/* --title "Unseenet $GITHUB_REF_NAME, portable" --notes-file notes.md
-      - name: Also on the core's release, while sticks look there (unseenet-portable#6)
-        env:
-          GH_TOKEN: ${{ secrets.UNSEENET_CORE_RELEASE_TOKEN }}
-        run: |
-          # Sticks from before this repository look for updates on unseenet/unseenet's
-          # releases. Until they all know this place, the first releases attach their
-          # files there too - which needs a token that may write to unseenet/unseenet.
-          if [ -z "$GH_TOKEN" ]; then
-            echo "::notice::UNSEENET_CORE_RELEASE_TOKEN is not set: the files are only here."; exit 0
-          fi
-          if gh release view "$GITHUB_REF_NAME" -R unseenet/unseenet >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" files/* -R unseenet/unseenet --clobber
-          else
-            echo "::notice::unseenet/unseenet has no release $GITHUB_REF_NAME: nothing attached there."
-          fi
