@@ -44,8 +44,11 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-TOOLS = ROOT / "tools"
+HERE = Path(__file__).resolve().parent.parent     # unseenet-portable
+TOOLS = HERE / "tools"                            # launchers, README, Tor's version and key
+# the core being built: a checkout of github.com/unseenet/unseenet (--core); its version,
+# icon and licence go into the build
+ROOT = Path(os.environ.get("UNSEENET_CORE", HERE.parent / "unseenet")).resolve()
 DIST_URL = "https://dist.torproject.org/torbrowser/"
 TOR_KEY = TOOLS / "keys" / "torbrowser-signing-key.asc"
 TOR_KEY_FINGERPRINT = "EF6E286DDA85EA2A4BA7DE684E2C6E8793298290"   # Tor Browser Developers
@@ -347,6 +350,7 @@ def checksums(paths: list[Path], out: Path) -> Path:
 
 # ---------------------------------------------------------------------------
 def main() -> None:
+    global ROOT                     # the checkout to build, from --core / --gui
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--platform", default=None, choices=PLATFORMS, help="default: this computer")
     p.add_argument("--tor-version", default=None,
@@ -357,8 +361,12 @@ def main() -> None:
     p.add_argument("--checksums", nargs="+", type=Path, metavar="FILE", help="write SHA256SUMS.txt for files")
     p.add_argument("--check-tor", action="store_true", help="exit 1 if a newer stable Tor exists")
     p.add_argument("--keep", action="store_true", help="also keep the unzipped folder in --out")
-    p.add_argument("--out", type=Path, default=ROOT / "dist-portable")
+    p.add_argument("--core", type=Path, default=ROOT,
+                   help="checkout of github.com/unseenet/unseenet to build (default: ../unseenet "
+                        "or $UNSEENET_CORE)")
+    p.add_argument("--out", type=Path, default=HERE / "dist-portable")
     args = p.parse_args()
+    ROOT = args.core.resolve()
 
     if args.check_tor:
         latest, pinned = latest_tor_version(), pinned_tor_version()

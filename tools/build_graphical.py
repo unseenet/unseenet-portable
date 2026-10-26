@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """Build a portable Unseenet graphical client: one folder per platform, with Tor inside.
 
-    python tools/build_portable.py --core ../unseenet                       # this platform
-    python tools/build_portable.py --core ../unseenet --platform windows-x86_64 --tor-archive tor.tar.gz
-    python tools/build_portable.py --core ../unseenet --fetch-tor linux-x86_64 --out tor/
-    python tools/build_portable.py --core ../unseenet --combine dist/*.zip --out dist/
+    python tools/build_graphical.py --gui ../unseenet-gui --core ../unseenet          # this platform
+    python tools/build_graphical.py --gui ../unseenet-gui --core ../unseenet --platform windows-x86_64 --tor-archive tor.tar.gz
+    python tools/build_graphical.py --fetch-tor linux-x86_64 --out tor/
+    python tools/build_graphical.py --gui ../unseenet-gui --core ../unseenet --combine dist/*.zip --out dist/
 
 The Tor handling (download, OpenPGP check against the pinned Tor key, the
-pinned version) is unseenet's own: ``--core`` points at a checkout of
-github.com/unseenet/unseenet and its ``tools/build_portable.py`` is used, so
-both projects ship the same, verified Tor.
+pinned version) is the terminal portable's, ``tools/build_portable.py`` beside
+this file, so both builds ship the same, verified Tor. ``--gui`` is the checkout
+of github.com/unseenet/unseenet-gui to build, ``--core`` the core's (its icon).
 
 A build is ``unseenet-gui-<version>-<platform>.zip``::
 
@@ -39,8 +39,10 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-TOOLS = ROOT / "tools"
+HERE = Path(__file__).resolve().parent.parent     # unseenet-portable
+TOOLS = HERE / "tools"
+# the graphical client being built: a checkout of github.com/unseenet/unseenet-gui (--gui)
+ROOT = Path(os.environ.get("UNSEENET_GUI", HERE.parent / "unseenet-gui")).resolve()
 TOP = "Unseenet"
 MARKER = "UNSEENET-PORTABLE"
 PLATFORMS = ("linux-x86_64", "windows-x86_64", "macos-aarch64", "macos-x86_64")
@@ -62,13 +64,13 @@ def version() -> str:
 
 
 def core_tools(core: Path):
-    """unseenet's tools/build_portable.py, as a module."""
-    path = core / "tools" / "build_portable.py"
-    if not path.is_file():
-        sys.exit(f"{path} not found: --core must be a checkout of github.com/unseenet/unseenet")
+    """The terminal portable's build script beside this one, as a module, building with
+    the core at ``core``: the same Tor handling for both builds."""
+    path = TOOLS / "build_portable.py"
     spec = importlib.util.spec_from_file_location("core_build_portable", path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
+    mod.ROOT = core
     return mod
 
 
@@ -211,16 +213,21 @@ def combine(zips: list[Path], out: Path, core: Path) -> Path:
 
 
 def main() -> None:
+    global ROOT                     # the checkout to build, from --core / --gui
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--core", type=Path, default=Path(os.environ.get("UNSEENET_CORE", ROOT.parent / "unseenet")),
+    p.add_argument("--core", type=Path, default=Path(os.environ.get("UNSEENET_CORE", HERE.parent / "unseenet")),
                    help="checkout of github.com/unseenet/unseenet (default: ../unseenet or $UNSEENET_CORE)")
+    p.add_argument("--gui", type=Path, default=ROOT,
+                   help="checkout of github.com/unseenet/unseenet-gui to build (default: "
+                        "../unseenet-gui or $UNSEENET_GUI)")
     p.add_argument("--platform", choices=PLATFORMS)
     p.add_argument("--tor-archive", type=Path, help="an expert bundle fetched with --fetch-tor")
     p.add_argument("--fetch-tor", nargs="+", metavar="PLATFORM", help="download and verify bundles, then stop")
     p.add_argument("--combine", nargs="+", type=Path, metavar="ZIP", help="merge platform zips into one USB zip")
     p.add_argument("--checksums", nargs="+", type=Path, metavar="FILE", help="write SHA256SUMS.txt")
-    p.add_argument("--out", type=Path, default=ROOT / "dist-portable")
+    p.add_argument("--out", type=Path, default=HERE / "dist-portable")
     args = p.parse_args()
+    ROOT = args.gui.resolve()
     core = args.core.resolve()
     up = core_tools(core)
     if args.fetch_tor:

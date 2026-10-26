@@ -92,16 +92,24 @@ The images for booting a stick are made from these zips in
 
 ## Develop
 
-For now each part is built by the build tool of its own repository, checked
-out at the version to build (`tools/build_portable.py` in unseenet and in
-unseenet-gui); next, those tools move here (unseenet#549). To try a branch,
-run the workflow by hand with `publish: artifact`.
+The build tools are here: `tools/build_portable.py` (the terminal builds, and
+the Tor handling both builds use - the download, the check against Tor
+Browser's key in `tools/keys/`, the version pinned in `tools/tor-version.txt`)
+and `tools/build_graphical.py`, with the launchers and READMEs in
+`tools/portable/`. They build checkouts of the core, unseenet-tui and
+unseenet-gui given with `--core` and `--gui`. To try a branch, run the
+workflow by hand with `publish: artifact`.
+
+A weekly job (`tor-update`) opens an issue when Tor releases a newer Expert
+Bundle; a daily one (`versions`) opens a pull request when the core,
+unseenet-tui or unseenet-gui made a release that `versions.toml` does not
+name yet.
 
 ## Versions and releases
 
 A bundle is versioned as the core it carries (`0.6.0`); a rebuild with newer
-clients is `0.6.0.post1`. When a part is released, bump it in
-`versions.toml` in a pull request, merge, then tag `vX.Y.Z` here; the
+clients is `0.6.0.post1`. When a part is released, the `versions` job
+proposes it in `versions.toml` in a pull request; merge, then tag `vX.Y.Z` here; the
 workflow makes the release, and the maintainer signs its `SHA256SUMS.txt`
 with the project key (`tools/project/sign_release.py` in unseenet). Notes
 are in [CHANGELOG.md](CHANGELOG.md).

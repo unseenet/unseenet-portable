@@ -211,7 +211,8 @@ unseenet --version
 
 Every release is built by GitHub Actions from the tagged source, in the
 open: [unseenet-portable's `build.yml`](https://github.com/unseenet/unseenet-portable/blob/main/.github/workflows/build.yml)
-and [`tools/build_portable.py`](https://github.com/unseenet/unseenet/blob/main/tools/build_portable.py).
+and [`tools/build_portable.py`](https://github.com/unseenet/unseenet-portable/blob/main/tools/build_portable.py)
+(the graphical builds: [`tools/build_graphical.py`](https://github.com/unseenet/unseenet-portable/blob/main/tools/build_graphical.py)).
 
 - **Tor** is the Tor Project's
   [Expert Bundle](https://www.torproject.org/download/tor/) - Tor, its
@@ -231,9 +232,16 @@ To build one yourself (you need Python 3.11+, `gpg`, and the system you are
 building for):
 
 ```bash
-pip install ".[tui]" pyinstaller pillow
-python tools/build_portable.py          # -> dist-portable/unseenet-<version>-<platform>.zip
+git clone https://github.com/unseenet/unseenet-portable
+git clone https://github.com/unseenet/unseenet
+git clone https://github.com/unseenet/unseenet-tui
+pip install ./unseenet ./unseenet-tui pyinstaller pillow
+python unseenet-portable/tools/build_portable.py --core unseenet
+# -> unseenet-portable/dist-portable/unseenet-<version>-<platform>.zip
 ```
+
+The graphical build is the same with `unseenet-gui` and
+`python unseenet-portable/tools/build_graphical.py --gui unseenet-gui --core unseenet`.
 
 ## Known limits
 
