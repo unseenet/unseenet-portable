@@ -1,14 +1,18 @@
 name: tor-update
-# Tor gets security releases; the portable builds should follow. Once a week,
-# check for a newer stable Tor Expert Bundle and open an issue if there is one.
+# Tor gets security releases, and the portable builds carry Tor inside: a fix
+# should reach the sticks soon. Every day, check for a newer stable Tor Expert
+# Bundle; if there is one, open a pull request that pins it in
+# tools/tor-version.txt. Its build is the test (every platform built and
+# self-tested with the new Tor); merging it releases a rebuild of the bundle,
+# vX.Y.Z.postN (post-release.yml).
 on:
   schedule:
-    - cron: "17 6 * * 1"
+    - cron: "17 6 * * *"
   workflow_dispatch:
 
 permissions:
-  contents: read
-  issues: write
+  contents: write
+  pull-requests: write
 
 jobs:
   check:
@@ -25,19 +29,27 @@ jobs:
           echo "$OUT"
           echo "newer=$([ $STATUS -ne 0 ] && echo yes || echo no)" >> "$GITHUB_OUTPUT"
           echo "latest=$(echo "$OUT" | sed 's/.*latest //')" >> "$GITHUB_OUTPUT"
+          echo "pinned=$(cat tools/tor-version.txt)" >> "$GITHUB_OUTPUT"
       - if: steps.check.outputs.newer == 'yes'
         env:
           GH_TOKEN: ${{ github.token }}
           LATEST: ${{ steps.check.outputs.latest }}
+          PINNED: ${{ steps.check.outputs.pinned }}
         run: |
-          TITLE="Tor Expert Bundle $LATEST is out"
-          if gh issue list --state open --search "$TITLE in:title" --json number -q '.[0].number' | grep -q .; then
-            echo "issue exists"; exit 0
+          BRANCH="tor-$LATEST"
+          if git ls-remote --exit-code origin "refs/heads/$BRANCH" >/dev/null; then
+            echo "a pull request for Tor $LATEST exists"; exit 0
           fi
-          gh issue create --title "$TITLE" --body "A newer stable Tor is available for the portable builds.
+          echo "$LATEST" > tools/tor-version.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git commit -qam "Tor $LATEST (was $PINNED)"
+          git push -q origin "$BRANCH"
+          gh pr create --head "$BRANCH" --title "Tor $LATEST" --body "A newer stable Tor Expert Bundle is out: $LATEST (pinned: $PINNED).
 
-          1. Put \`$LATEST\` in \`tools/tor-version.txt\`.
-          2. Run the *portable* workflow (or push a tag) and check the self-tests.
-          3. Release, so USB users get Tor's fixes.
+          Tor's security fixes should reach the sticks soon. This pull request pins it; merging it releases a rebuild of the bundle (\`vX.Y.Z.postN\`, the same Unseenet with the new Tor) through *post-release*.
 
-          Release notes: https://blog.torproject.org/"
+          A pull request opened by this workflow does not start the build by itself: close and reopen it (or push to it) to build and self-test every platform with the new Tor before merging.
+
+          Tor's release notes: https://blog.torproject.org/"

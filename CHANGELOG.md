@@ -10,6 +10,7 @@ All notable changes to unseenet-portable are listed here. The format follows
   builds and the Tor handling), `tools/build_graphical.py` (from unseenet-gui),
   the launchers in `tools/portable/`, `tools/tor-version.txt` and Tor Browser's
   key, with their history; they build checkouts given with `--core`/`--gui`.
-  The weekly `tor-update` check moves here too.
+  The `tor-update` check moves here too, now daily, and opens a pull request
+  pinning the newer Tor instead of an issue.
 - **`versions` job**: a pull request bumping `versions.toml` when a part makes
   a release (`tools/bump_versions.py`).

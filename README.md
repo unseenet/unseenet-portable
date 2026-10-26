@@ -100,8 +100,8 @@ and `tools/build_graphical.py`, with the launchers and READMEs in
 unseenet-gui given with `--core` and `--gui`. To try a branch, run the
 workflow by hand with `publish: artifact`.
 
-A weekly job (`tor-update`) opens an issue when Tor releases a newer Expert
-Bundle; a daily one (`versions`) opens a pull request when the core,
+A daily job (`tor-update`) opens a pull request pinning a newer Tor Expert
+Bundle when Tor releases one - often a security fix; a daily one (`versions`) opens a pull request when the core,
 unseenet-tui or unseenet-gui made a release that `versions.toml` does not
 name yet.
 
