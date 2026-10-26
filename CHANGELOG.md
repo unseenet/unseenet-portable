@@ -6,6 +6,13 @@ All notable changes to unseenet-portable are listed here. The format follows
 
 ## [Unreleased]
 
+- **A newer Tor, or newer parts, is released at once** (#6): when
+  `tools/tor-version.txt` or `versions.toml` changes on main, `post-release`
+  tags the next bundle (`tools/next_tag.py`) and starts the build on it -
+  `vX.Y.Z` for a core's first bundle, then `vX.Y.Z.post1`, `.post2`, ...:
+  PEP 440 post-releases, the same Unseenet built again. The maintainer signs a
+  stable release afterwards as before.
+
 - **The build tools are here** (#6): `tools/build_portable.py` (the terminal
   builds and the Tor handling), `tools/build_graphical.py` (from unseenet-gui),
   the launchers in `tools/portable/`, `tools/tor-version.txt` and Tor Browser's

@@ -109,7 +109,8 @@ name yet.
 
 A bundle is versioned as the core it carries (`0.6.0`); a rebuild with newer
 clients is `0.6.0.post1`. When a part is released, the `versions` job
-proposes it in `versions.toml` in a pull request; merge, then tag `vX.Y.Z` here; the
+proposes it in `versions.toml` in a pull request; merging it - or a pull request
+pinning a newer Tor - tags the next bundle (`post-release`); the
 workflow makes the release, and the maintainer signs its `SHA256SUMS.txt`
 with the project key (`tools/project/sign_release.py` in unseenet). Notes
 are in [CHANGELOG.md](CHANGELOG.md).
