@@ -6,6 +6,11 @@ All notable changes to unseenet-portable are listed here. The format follows
 
 ## [Unreleased]
 
+- **The graphical builds are signed and announced too** (#3): their checksums are
+  in the same `SHA256SUMS.txt` as the terminal builds', so the release key signs
+  them and `unseenet.releases` carries them; `SHA256SUMS-graphical.txt` is gone.
+  A terminal stick's updater still takes only its own zip.
+
 - **A newer Tor, or newer parts, is released at once** (#6): when
   `tools/tor-version.txt` or `versions.toml` changes on main, `post-release`
   tags the next bundle (`tools/next_tag.py`) and starts the build on it -
