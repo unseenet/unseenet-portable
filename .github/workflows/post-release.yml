@@ -1,0 +1,41 @@
+name: post-release
+# What goes into the bundle changed on main - a newer Tor (tools/tor-version.txt,
+# often a security fix) or newer parts (versions.toml): release it now. The tag
+# is the next one for the core in versions.toml (tools/next_tag.py): vX.Y.Z for
+# its first bundle, then vX.Y.Z.post1, .post2, ... - PEP 440 post-releases, the
+# same Unseenet built again. A tag pushed with this workflow's token starts no
+# workflow, so the build is started on the tag by hand-dispatch here; its
+# release job publishes, and the maintainer signs a stable release afterwards.
+on:
+  push:
+    branches: [main]
+    paths: ["tools/tor-version.txt", "versions.toml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: post-release
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0                     # the tags made so far
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=$(python tools/next_tag.py)
+          echo "Releasing $TAG (Tor $(cat tools/tor-version.txt))"
+          git tag "$TAG"
+          git push -q origin "$TAG"
+          gh workflow run build.yml --ref "$TAG" -f publish=artifact
+          echo "::notice::Tagged $TAG and started the build on it."
