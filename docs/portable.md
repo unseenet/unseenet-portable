@@ -85,14 +85,41 @@ Unseenet/
     program is not signed (a code-signing certificate costs money every
     year). Click **More info**, then **Run anyway**.
 
+    If Windows keeps asking, the files still carry the download's
+    *Mark of the Web*. Right-click the **zip**, choose **Properties**, tick
+    **Unblock** at the bottom, click **OK**, and unzip it again.
+
 === "macOS"
 
-    Double-click **Start Unseenet.command**. A Terminal window opens with
-    the client.
+    Double-click **Start Unseenet.command** - not the `unseenet` program in
+    `macos-aarch64/` or `macos-x86_64/`. A Terminal window opens with the
+    client.
 
-    The first time, macOS may say the developer cannot be verified.
-    Right-click (or Ctrl-click) the file, choose **Open**, and confirm.
-    The launcher then lets macOS run the programs in its folder.
+    The first time, macOS blocks it, because the program is not signed by
+    Apple (that takes a paid developer account, and notarizing every
+    release). Let it through once:
+
+    1. Double-click **Start Unseenet.command**. macOS says it was blocked
+       or cannot be verified: click **Done** (not *Move to Trash*).
+    2. Open **System Settings → Privacy & Security**, scroll down to
+       *"Start Unseenet.command" was blocked*, and click **Open Anyway**.
+       (On macOS 14 and older, right-clicking the file and choosing
+       **Open** does the same.)
+    3. Double-click it again and confirm.
+
+    The launcher then lets macOS run the programs in its folder. Files from
+    a download are marked as quarantined, and *Open Anyway* only lets the one
+    file through, not the Python library and Tor beside it - so if you
+    start `macos-…/unseenet` directly, macOS says **"Python.framework" is
+    damaged**. It is not: click **Cancel** and use the launcher. Or clear
+    the mark on the whole folder yourself, in Terminal:
+
+    ```bash
+    xattr -dr com.apple.quarantine ~/Downloads/Unseenet
+    ```
+
+    A zip fetched in Terminal (`curl -LO …` or `wget …`) is not
+    quarantined at all.
 
 === "Linux"
 
@@ -106,9 +133,24 @@ Unseenet/
     permission; the script starts the program anyway, through the system's
     program loader.
 
+Copying the folder to a stick keeps the download's mark, on Windows and
+macOS alike, so the first start from the stick asks the same.
+
 The first start asks for a passphrase for your new vault, a display name and
 a node. Starting Tor takes up to a minute; after that, it is quicker,
 because Tor keeps what it learned about the network in `data/`.
+
+### Your first post
+
+You can read right away, but a new key must
+[ripen](https://unseenet.org/spec/un-rfc-0025/) once before it can post: a
+calculation that takes from a few minutes to a quarter of an hour or more,
+depending on the computer.
+It is what makes spam from throwaway keys expensive, without anyone
+deciding who may post. It starts by itself; the title bar shows your *key
+level*, and a post you write meanwhile is sent when the key is ready. Keep
+the client open until then - ripening goes on where it stopped the next
+time. **Ctrl+P → Key ripening** shows how far it is.
 
 ## Your data
 
@@ -245,7 +287,8 @@ The graphical build is the same with `unseenet-gui` and
 
 ## Known limits
 
-- The programs are not code-signed, hence the warnings on first start.
+- The programs are not code-signed or notarized, hence the warnings on
+  first start ([#11](https://github.com/unseenet/unseenet-portable/issues/11)).
 - No 32-bit builds, and no Linux on ARM yet (the Tor Project offers no
   stable Expert Bundle for it).
 - Linux builds need glibc 2.35 or newer (Ubuntu 22.04, Debian 12, Fedora 36

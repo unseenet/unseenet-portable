@@ -16,13 +16,24 @@ Windows   Double-click "Start Unseenet.bat".
           Windows may say "Windows protected your PC": the program is not
           signed. Click "More info", then "Run anyway".
 
-macOS     Double-click "Start Unseenet.command". If macOS says the developer
-          cannot be verified, right-click the file, choose Open, and confirm.
+macOS     Double-click "Start Unseenet.command" - not the program in the
+          macos-... folder. The first time, macOS blocks it: click Done,
+          open System Settings > Privacy & Security, click "Open Anyway"
+          by "Start Unseenet.command", and start it again. (macOS 14 and
+          older: right-click the file, choose Open, and confirm.)
+          If macOS says "Python.framework" is damaged, you started the
+          program directly: click Cancel and use the launcher, or run
+            xattr -dr com.apple.quarantine /path/to/Unseenet
 
 Linux     In a terminal:   sh /path/to/Unseenet/start-linux.sh
 
 The first time, you choose a passphrase for your vault, a name, and a node to
 connect to. Starting Tor takes up to a minute.
+
+You can read at once, but a new key must "ripen" once before it can post: a
+calculation of a few minutes to a quarter of an hour or more. It starts by
+itself; keep the client open until it is done (Ctrl+P > Key ripening shows
+how far it is).
 
 
 YOUR DATA
