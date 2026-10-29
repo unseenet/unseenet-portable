@@ -6,6 +6,6 @@
 # it carries (0.6.0); a rebuild with newer clients is 0.6.0.post1.
 #
 [release]
-core = "v0.6.1"     # unseenet/unseenet: the core, the CLI, the Tor handling
+core = "v0.6.2"     # unseenet/unseenet: the core, the CLI, the Tor handling
 tui = "v0.2.0"      # unseenet/unseenet-tui: the terminal client (release it before the next bundle)
 gui = "v0.3.0"      # unseenet/unseenet-gui: the graphical client
