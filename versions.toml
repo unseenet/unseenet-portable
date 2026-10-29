@@ -8,4 +8,4 @@
 [release]
 core = "v0.6.4"     # unseenet/unseenet: the core, the CLI, the Tor handling
 tui = "v0.2.0"      # unseenet/unseenet-tui: the terminal client (release it before the next bundle)
-gui = "v0.3.2"      # unseenet/unseenet-gui: the graphical client
+gui = "v0.3.3"      # unseenet/unseenet-gui: the graphical client
