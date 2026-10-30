@@ -6,6 +6,12 @@ All notable changes to unseenet-portable are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.6.5.post1] - 2026-10-30
+
+Unseenet 0.6.5 again, with the terminal client 0.3.1 and the graphical client 0.4.1: a post
+with pictures of its own shows them first and its link card as one small line after them
+(UN-RFC 0059 section 8) - a NASA picture of the day is the picture again.
+
 ## [0.6.5] - 2026-10-30
 
 Unseenet 0.6.5 with the terminal client 0.3.0 and the graphical client 0.4.0: link
