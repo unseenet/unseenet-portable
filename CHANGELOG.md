@@ -6,6 +6,13 @@ All notable changes to unseenet-portable are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.6.5] - 2026-10-30
+
+Unseenet 0.6.5 with the terminal client 0.3.0 and the graphical client 0.4.0: link
+previews (UN-RFC 0059) - a post with a link shows a card with the site's icon, domain,
+title, description and picture, made once by the poster's client over Tor; small on a chat
+line. Ctrl+P: *Link previews* turns them off.
+
 - **A post-release carries its own version** (#6): v0.6.4.post1 was built with the core's
   0.6.4 inside and in its zips' names, so a stick's updater did not see it as newer and
   `sign_release.py` refused it. On a `vX.Y.Z.postN` tag the core's version is now the
