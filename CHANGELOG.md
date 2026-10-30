@@ -6,6 +6,14 @@ All notable changes to unseenet-portable are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.6.6] - 2026-10-30
+
+Unseenet 0.6.6 with the terminal client 0.4.0 and the graphical client 0.5.0: sharing
+(UN-RFC 0060) - share a post into your feed, with a comment of your own, into up to three
+groups, or send it to one person. A share is a reference, never a copy: it is read as the
+original, comments and reactions go to the original, and when its author withdraws it, it
+is gone from every share. Never a count. Tor 16.0 (was 15.0.26, #21).
+
 ## [0.6.5.post1] - 2026-10-30
 
 Unseenet 0.6.5 again, with the terminal client 0.3.1 and the graphical client 0.4.1: a post
