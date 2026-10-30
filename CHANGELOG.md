@@ -12,7 +12,7 @@ Unseenet 0.6.6 with the terminal client 0.4.0 and the graphical client 0.5.0: sh
 (UN-RFC 0060) - share a post into your feed, with a comment of your own, into up to three
 groups, or send it to one person. A share is a reference, never a copy: it is read as the
 original, comments and reactions go to the original, and when its author withdraws it, it
-is gone from every share. Never a count. Tor 16.0 (was 15.0.26, #21).
+is gone from every share. Never a count. With Tor 16.0, as 0.6.5.post2 (#21).
 
 ## [0.6.5.post1] - 2026-10-30
 
