@@ -6,6 +6,12 @@ All notable changes to unseenet-portable are listed here. The format follows
 
 ## [Unreleased]
 
+- **A post-release carries its own version** (#6): v0.6.4.post1 was built with the core's
+  0.6.4 inside and in its zips' names, so a stick's updater did not see it as newer and
+  `sign_release.py` refused it. On a `vX.Y.Z.postN` tag the core's version is now the
+  tag's: `unseenet-0.6.4.post1-*.zip`, `UNSEENET-VERSION` 0.6.4.post1. The graphical zips
+  keep the graphical client's own version.
+
 - **The graphical builds are signed and announced too** (#3): their checksums are
   in the same `SHA256SUMS.txt` as the terminal builds', so the release key signs
   them and `unseenet.releases` carries them; `SHA256SUMS-graphical.txt` is gone.

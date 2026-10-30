@@ -135,6 +135,14 @@ jobs:
         shell: bash
         working-directory: core
         run: python tools/dev_version.py --write
+      # a post-release (vX.Y.Z.postN, #6) is the same core built again with newer parts:
+      # it carries the tag's version, so its zips are named for it, a stick's updater sees
+      # it as newer than X.Y.Z, and sign_release.py accepts it
+      - name: Post-release version (vX.Y.Z.postN tags)
+        if: "startsWith(github.ref, 'refs/tags/v') && contains(github.ref_name, '.post')"
+        shell: bash
+        working-directory: core
+        run: sed -i.bak "s/^__version__ = \".*\"/__version__ = \"${GITHUB_REF_NAME#v}\"/" src/unseenet/__init__.py && grep __version__ src/unseenet/__init__.py
       - name: Key ripening on Intel Macs (chiavdf has no wheel there)
         if: matrix.platform == 'macos-x86_64'
         shell: bash
@@ -303,6 +311,9 @@ jobs:
         run: |
           (cd core && python tools/dev_version.py --write)
           sed -i "s/^__version__ = \"\(.*\)\.dev0\"/__version__ = \"\1.dev${{ github.run_number }}\"/" gui/src/unseenet_gui/__init__.py
+      - name: Post-release version (vX.Y.Z.postN tags, #6)
+        if: "startsWith(github.ref, 'refs/tags/v') && contains(github.ref_name, '.post')"
+        run: sed -i "s/^__version__ = \".*\"/__version__ = \"${GITHUB_REF_NAME#v}\"/" core/src/unseenet/__init__.py && grep __version__ core/src/unseenet/__init__.py
       - uses: actions/download-artifact@v4
         with:
           pattern: terminal-*
