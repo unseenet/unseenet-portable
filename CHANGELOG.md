@@ -6,6 +6,12 @@ All notable changes to unseenet-portable are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.6.7] - 2026-10-31
+
+Unseenet 0.6.7, still with the terminal client 0.4.0 and the graphical client 0.5.0: link
+cards keep their picture where the picture's server picks the format (unseenet#813) -
+DR's pictures came as AVIF, which the client cannot show, and were dropped.
+
 ## [0.6.6] - 2026-10-30
 
 Unseenet 0.6.6 with the terminal client 0.4.0 and the graphical client 0.5.0: sharing
