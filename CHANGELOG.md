@@ -6,6 +6,14 @@ All notable changes to unseenet-portable are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.6.8] - 2026-10-31
+
+Unseenet 0.6.8 with the terminal client 0.4.1 and the graphical client 0.5.1: *Share with a
+comment*, *Share into a group* and *Send to* open the ordinary compose window, the shared
+post as a card under your words, the group or person chosen first with a search. From
+0.6.7: link cards keep their picture where the picture's server picks the format
+(unseenet#813).
+
 ## [0.6.6] - 2026-10-30
 
 Unseenet 0.6.6 with the terminal client 0.4.0 and the graphical client 0.5.0: sharing
