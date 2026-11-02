@@ -150,9 +150,26 @@ def common_files(top: Path) -> None:
     shutil.copy2(ROOT / "LICENSE", licenses / "unseenet-gui-LICENSE.txt")
 
 
+GUI_VERSION = "UNSEENET-GUI-VERSION"
+GUI_FILES = "UNSEENET-GUI-FILES"
+
+
+def stamp(stage: Path) -> None:
+    """UNSEENET-GUI-VERSION and UNSEENET-GUI-FILES, which ``unseenet update --product
+    gui`` reads (unseenet/unseenet#264): this client's version in a folder, and what it
+    put there - the next update removes what it no longer has, but never a file the
+    terminal client's UNSEENET-FILES lists. Not UNSEENET-VERSION/FILES: those are the
+    terminal client's, which can be in the same folder."""
+    (stage / GUI_VERSION).write_text(version() + "\n")
+    files = sorted(p.relative_to(stage).as_posix() for p in stage.rglob("*")
+                   if (p.is_file() or p.is_symlink()) and p.relative_to(stage).parts[0] != "data")
+    names = sorted(set(files) | {GUI_FILES, GUI_VERSION})
+    (stage / GUI_FILES).write_text("\n".join(names) + "\n")
+
+
 def write_zip(stage: Path, zip_path: Path) -> None:
-    """Zip keeping Unix modes and symlinks. No UNSEENET-VERSION/FILES: those belong
-    to the terminal client's updater, which must not mistake this zip for its own."""
+    """Zip keeping Unix modes and symlinks, stamped with this client's version and files."""
+    stamp(stage)
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
         for path in sorted(stage.rglob("*")):
             arc = (Path(TOP) / path.relative_to(stage)).as_posix()

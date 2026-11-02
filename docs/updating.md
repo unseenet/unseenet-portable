@@ -55,6 +55,23 @@ with one platform gets that platform's zip, so it stays small. On Windows a
 program that is running cannot be replaced, so it is moved aside and deleted
 the next time Unseenet starts.
 
+## Portable (Linux, macOS, Windows) · Graphical
+
+When the status bar says *Unseenet X is ready*, press **Update** there. The
+client saves your work, updates the folder over Tor and asks you to start it
+again. From a terminal, in the Unseenet folder:
+
+```bash
+./gui-linux-x86_64/unseenet-gui update --product gui     # Linux
+```
+
+The terminal and the graphical client can be in the same folder and share
+`data/`; each is updated on its own (`--product terminal` or `--product gui`),
+and neither removes the other's files. A folder with only the graphical client
+is updated as one without `--product`. This works from the graphical client
+built with Unseenet 0.8 on; older folders are updated by unpacking the new zip
+over them.
+
 ## Without a network
 
 Download, from the same release on
