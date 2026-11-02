@@ -6,6 +6,13 @@ All notable changes to unseenet-portable are listed here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **The graphical client's zips can be updated in place** (unseenet/unseenet#264): they carry
+  `UNSEENET-GUI-VERSION` and `UNSEENET-GUI-FILES`, which `unseenet update --product gui` reads,
+  so a folder or stick with the graphical client updates itself as the terminal client's does -
+  each on its own when both are in one folder, neither removing the other's files.
+
 ## [0.6.8] - 2026-10-31
 
 Unseenet 0.6.8 with the terminal client 0.4.1 and the graphical client 0.5.1: *Share with a
